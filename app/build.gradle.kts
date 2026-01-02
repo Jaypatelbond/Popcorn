@@ -90,6 +90,10 @@ dependencies {
     // Image Loading
     implementation(libs.coil.compose)
 
+    // Chucker (Network debugging)
+    debugImplementation(libs.chucker.library)
+    releaseImplementation(libs.chucker.library.no.op)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

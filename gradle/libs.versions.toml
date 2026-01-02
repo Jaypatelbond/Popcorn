@@ -30,6 +30,9 @@ navigationCompose = "2.8.5"
 # KSP
 ksp = "2.0.21-1.0.28"
 
+# Debugging
+chucker = "4.0.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -71,6 +74,10 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Chucker (Network debugging)
+chucker-library = { group = "com.github.chuckerteam.chucker", name = "library", version.ref = "chucker" }
+chucker-library-no-op = { group = "com.github.chuckerteam.chucker", name = "library-no-op", version.ref = "chucker" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

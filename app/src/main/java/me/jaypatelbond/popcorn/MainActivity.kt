@@ -1,10 +1,14 @@
 package me.jaypatelbond.popcorn
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -39,9 +43,20 @@ import me.jaypatelbond.popcorn.ui.theme.TextSecondary
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    // Permission launcher for notifications (Android 13+)
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Permission result - Chucker will work if granted
+        // No action needed if denied, Chucker will just not show notifications
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Request notification permission for Android 13+ (for Chucker in debug builds)
+        requestNotificationPermissionIfNeeded()
 
         // Parse deep link movie ID if app was opened via deep link
         val deepLinkMovieId = parseDeepLinkMovieId(intent)
@@ -49,6 +64,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             PopcornTheme {
                 MainApp(deepLinkMovieId = deepLinkMovieId)
+            }
+        }
+    }
+
+    /**
+     * Request notification permission on Android 13+ (API 33+).
+     * Only needed for debug builds with Chucker.
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
