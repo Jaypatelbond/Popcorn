@@ -31,6 +31,20 @@ class MovieRepositoryImpl @Inject constructor(
         const val TYPE_NOW_PLAYING = "now_playing"
     }
 
+    private fun getErrorMessage(e: Exception): String {
+        return when (e) {
+            is java.io.IOException -> "No internet connection. Please check your network."
+            is retrofit2.HttpException -> {
+                when (e.code()) {
+                    404 -> "Resource not found"
+                    500, 502, 503 -> "Server error. Please try again later."
+                    else -> "Unexpected error occurred (${e.code()})"
+                }
+            }
+            else -> e.localizedMessage ?: "Unknown error occurred"
+        }
+    }
+
     override fun getTrendingMovies(): Flow<Resource<List<Movie>>> = flow {
         emit(Resource.Loading())
 
@@ -54,10 +68,11 @@ class MovieRepositoryImpl @Inject constructor(
             movieDao.insertMovies(updatedMovies)
             emit(Resource.Success(updatedMovies.map { it.toDomain() }))
         } catch (e: Exception) {
+            val errorMessage = getErrorMessage(e)
             if (cachedMovies.isNotEmpty()) {
-                emit(Resource.Error(e.message ?: "Unknown error", cachedMovies.toDomainList()))
+                emit(Resource.Error(errorMessage, cachedMovies.toDomainList()))
             } else {
-                emit(Resource.Error(e.message ?: "Unknown error"))
+                emit(Resource.Error(errorMessage))
             }
         }
     }
@@ -85,10 +100,11 @@ class MovieRepositoryImpl @Inject constructor(
             movieDao.insertMovies(updatedMovies)
             emit(Resource.Success(updatedMovies.map { it.toDomain() }))
         } catch (e: Exception) {
+            val errorMessage = getErrorMessage(e)
             if (cachedMovies.isNotEmpty()) {
-                emit(Resource.Error(e.message ?: "Unknown error", cachedMovies.toDomainList()))
+                emit(Resource.Error(errorMessage, cachedMovies.toDomainList()))
             } else {
-                emit(Resource.Error(e.message ?: "Unknown error"))
+                emit(Resource.Error(errorMessage))
             }
         }
     }
@@ -111,10 +127,11 @@ class MovieRepositoryImpl @Inject constructor(
             movieDao.insertMovie(movieEntity)
             emit(Resource.Success(movieEntity.toDomain()))
         } catch (e: Exception) {
+            val errorMessage = getErrorMessage(e)
             if (cachedMovie != null) {
-                emit(Resource.Error(e.message ?: "Unknown error", cachedMovie.toDomain()))
+                emit(Resource.Error(errorMessage, cachedMovie.toDomain()))
             } else {
-                emit(Resource.Error(e.message ?: "Unknown error"))
+                emit(Resource.Error(errorMessage))
             }
         }
     }
@@ -132,12 +149,13 @@ class MovieRepositoryImpl @Inject constructor(
             val movies = response.results.map { it.toDomain() }
             emit(Resource.Success(movies))
         } catch (e: Exception) {
+            val errorMessage = getErrorMessage(e)
             // Try local search as fallback
             val localResults = movieDao.searchMovies(query).first()
             if (localResults.isNotEmpty()) {
-                emit(Resource.Error(e.message ?: "Unknown error", localResults.toDomainList()))
+                emit(Resource.Error(errorMessage, localResults.toDomainList()))
             } else {
-                emit(Resource.Error(e.message ?: "Unknown error"))
+                emit(Resource.Error(errorMessage))
             }
         }
     }

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.jaypatelbond.popcorn.domain.model.Movie
+import me.jaypatelbond.popcorn.presentation.components.ErrorView
 import me.jaypatelbond.popcorn.presentation.components.FeaturedMovieCard
 import me.jaypatelbond.popcorn.presentation.components.FeaturedMovieShimmer
 import me.jaypatelbond.popcorn.presentation.components.MovieCarousel
@@ -87,6 +88,7 @@ fun HomeScreen(
         HomeContent(
             uiState = uiState,
             onMovieClick = onMovieClick,
+            onRetry = { viewModel.refresh() },
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -97,6 +99,7 @@ fun HomeScreen(
 private fun HomeContent(
     uiState: HomeUiState,
     onMovieClick: (Movie) -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -108,7 +111,24 @@ private fun HomeContent(
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        // Offline Banner
+        if (uiState.isOffline) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.error)
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No Internet Connection - Showing Cached Data",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Featured Movies Carousel (top 5 trending movies)
         if (uiState.isTrendingLoading && uiState.trendingMovies.isEmpty()) {
@@ -121,6 +141,12 @@ private fun HomeContent(
                 movies = featuredMovies,
                 onMovieClick = onMovieClick
             )
+        } else if (uiState.trendingError != null) {
+            ErrorView(
+                message = uiState.trendingError,
+                onRetry = onRetry,
+                isNetworkError = uiState.trendingError.contains("internet", ignoreCase = true)
+            )
         }
 
         // Trending Movies Section
@@ -131,11 +157,6 @@ private fun HomeContent(
                 title = "Trending This Week",
                 movies = uiState.trendingMovies,
                 onMovieClick = onMovieClick
-            )
-        } else if (uiState.trendingError != null) {
-            ErrorSection(
-                message = "Failed to load trending movies",
-                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
 
@@ -148,11 +169,17 @@ private fun HomeContent(
                 movies = uiState.nowPlayingMovies,
                 onMovieClick = onMovieClick
             )
-        } else if (uiState.nowPlayingError != null) {
-            ErrorSection(
-                message = "Failed to load now playing movies",
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+        } else if (uiState.nowPlayingError != null && uiState.nowPlayingMovies.isEmpty()) {
+             // Only show error for now playing if list is empty, otherwise we rely on trending error
+             if (uiState.trendingMovies.isNotEmpty()) {
+                 // If trending loaded but now playing failed, maybe just a text or nothing?
+                 // For now, let's just show the error view if it's the only thing
+                 ErrorView(
+                    message = uiState.nowPlayingError,
+                    onRetry = onRetry,
+                    isNetworkError = uiState.nowPlayingError.contains("internet", ignoreCase = true)
+                )
+             }
         }
 
         // Popular Movies (second half of trending)
@@ -230,21 +257,4 @@ private fun FeaturedMoviesCarousel(
     }
 }
 
-@Composable
-private fun ErrorSection(
-    message: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
-}
+

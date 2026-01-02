@@ -23,56 +23,75 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val movieRepository: MovieRepository
+    private val movieRepository: MovieRepository,
+    private val networkMonitor: me.jaypatelbond.popcorn.util.NetworkMonitor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private val searchQuery = MutableStateFlow("")
+    private val retryTrigger = MutableStateFlow(0)
 
     init {
+        observeNetworkStatus()
+        
         // Debounced search - waits 500ms after user stops typing
         viewModelScope.launch {
-            searchQuery
-                .debounce(500)
-                .distinctUntilChanged()
-                .filter { it.length >= 2 }
-                .flatMapLatest { query ->
-                    movieRepository.searchMovies(query)
-                }
-                .collect { result ->
-                    when (result) {
-                        is Resource.Loading -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = true,
-                                    error = null,
-                                    hasSearched = true
-                                )
-                            }
+            kotlinx.coroutines.flow.combine(
+                searchQuery
+                    .debounce(500)
+                    .distinctUntilChanged()
+                    .filter { it.length >= 2 },
+                retryTrigger
+            ) { query, _ -> query }
+            .flatMapLatest { query ->
+                movieRepository.searchMovies(query)
+            }
+            .collect { result ->
+                when (result) {
+                    is Resource.Loading -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = true,
+                                error = null,
+                                hasSearched = true
+                            )
                         }
-                        is Resource.Success -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    results = result.data ?: emptyList(),
-                                    error = null
-                                )
-                            }
+                    }
+                    is Resource.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                results = result.data ?: emptyList(),
+                                error = null
+                            )
                         }
-                        is Resource.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    error = result.message,
-                                    results = result.data ?: it.results
-                                )
-                            }
+                    }
+                    is Resource.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = result.message,
+                                results = result.data ?: it.results
+                            )
                         }
                     }
                 }
+            }
         }
+    }
+
+    private fun observeNetworkStatus() {
+        viewModelScope.launch {
+            networkMonitor.isOnline.collect { isOnline ->
+                _uiState.update { it.copy(isOffline = !isOnline) }
+            }
+        }
+    }
+
+    fun retry() {
+        retryTrigger.update { it + 1 }
     }
 
     /**

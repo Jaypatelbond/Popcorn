@@ -84,6 +84,23 @@ fun SearchScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Offline Banner
+            if (uiState.isOffline) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.error)
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No Internet Connection - Showing Cached Data",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White
+                    )
+                }
+            }
+
             // Search input
             OutlinedTextField(
                 value = uiState.query,
@@ -144,6 +161,13 @@ fun SearchScreen(
                         ) {
                             CircularProgressIndicator(color = NetflixRed)
                         }
+                    }
+                    uiState.error != null && uiState.results.isEmpty() -> {
+                        me.jaypatelbond.popcorn.presentation.components.ErrorView(
+                            message = uiState.error ?: "Unknown error",
+                            onRetry = { viewModel.retry() },
+                            isNetworkError = uiState.error?.contains("internet", ignoreCase = true) == true
+                        )
                     }
                     !uiState.hasSearched -> {
                         InitialState()

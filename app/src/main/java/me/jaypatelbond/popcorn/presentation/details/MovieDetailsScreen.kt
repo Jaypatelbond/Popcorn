@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import me.jaypatelbond.popcorn.domain.model.Movie
+import me.jaypatelbond.popcorn.presentation.components.ErrorView
 import me.jaypatelbond.popcorn.ui.theme.BackgroundDark
 import me.jaypatelbond.popcorn.ui.theme.NetflixRed
 import me.jaypatelbond.popcorn.ui.theme.RatingYellow
@@ -95,18 +96,38 @@ fun MovieDetailsScreen(
                     LoadingState()
                 }
                 uiState.error != null && uiState.movie == null -> {
-                    ErrorState(
+                    ErrorView(
                         message = uiState.error ?: "Unknown error",
-                        onRetry = { viewModel.retry() }
+                        onRetry = { viewModel.retry() },
+                        isNetworkError = uiState.error?.contains("internet", ignoreCase = true) == true,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
                 uiState.movie != null -> {
-                    MovieDetailsContent(
-                        movie = uiState.movie!!,
-                        isBookmarked = uiState.isBookmarked,
-                        onBackClick = onBackClick,
-                        onShareClick = { onShareClick(uiState.movie!!) }
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (uiState.isOffline) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.error)
+                                    .padding(vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No Internet Connection - Showing Cached Data",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        
+                        MovieDetailsContent(
+                            movie = uiState.movie!!,
+                            isBookmarked = uiState.isBookmarked,
+                            onBackClick = onBackClick,
+                            onShareClick = { onShareClick(uiState.movie!!) }
+                        )
+                    }
                 }
             }
         }
@@ -337,42 +358,4 @@ private fun LoadingState() {
     }
 }
 
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "😕",
-            style = MaterialTheme.typography.displayLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Failed to load movie details",
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = NetflixRed)
-        ) {
-            Text("Retry")
-        }
-    }
-}
+

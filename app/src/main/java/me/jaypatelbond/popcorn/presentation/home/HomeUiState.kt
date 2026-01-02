@@ -11,7 +11,8 @@ data class HomeUiState(
     val isTrendingLoading: Boolean = false,
     val isNowPlayingLoading: Boolean = false,
     val trendingError: String? = null,
-    val nowPlayingError: String? = null
+    val nowPlayingError: String? = null,
+    val isOffline: Boolean = false
 ) {
     val isLoading: Boolean
         get() = isTrendingLoading || isNowPlayingLoading

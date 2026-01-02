@@ -10,5 +10,6 @@ data class SearchUiState(
     val results: List<Movie> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val hasSearched: Boolean = false
+    val hasSearched: Boolean = false,
+    val isOffline: Boolean = false
 )

@@ -19,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MovieDetailsViewModel @Inject constructor(
     private val movieRepository: MovieRepository,
+    private val networkMonitor: me.jaypatelbond.popcorn.util.NetworkMonitor,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -28,7 +29,16 @@ class MovieDetailsViewModel @Inject constructor(
     val uiState: StateFlow<MovieDetailsUiState> = _uiState.asStateFlow()
 
     init {
+        observeNetworkStatus()
         loadMovieDetails()
+    }
+
+    private fun observeNetworkStatus() {
+        viewModelScope.launch {
+            networkMonitor.isOnline.collect { isOnline ->
+                _uiState.update { it.copy(isOffline = !isOnline) }
+            }
+        }
     }
 
     private fun loadMovieDetails() {
