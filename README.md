@@ -86,7 +86,7 @@ app/
 
 ## 📦 APK Download
 
-[Download Latest APK](apk/popcorn.apk)
+[Download Latest APK](apk/popcorn_debug.apk)
 
 ## 🎯 Task Checklist
 
